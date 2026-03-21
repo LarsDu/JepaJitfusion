@@ -1,5 +1,5 @@
 [project]
-name = "project-name"
+name = "jepajitfusion"
 version = "0.1.0"
 description = "Template for open source pytorch projects managed by uv"
 authors = [
@@ -15,7 +15,7 @@ dependencies = [
     "einops>=0.8.0",
 ]
 readme = "README.md"
-requires-python = ">= 3.10"
+requires-python = ">= 3.14"
 
 [tool.uv]
 managed = true
