@@ -1,0 +1,38 @@
+[project]
+name = "project-name"
+version = "0.1.0"
+description = "Template for open source pytorch projects managed by uv"
+authors = [
+    { name = "Larry Du", email = "larrydu88@gmail.com" }
+]
+dependencies = [
+    "torch>=2.4.1",
+    "numpy>=2.1.1",
+    "torchvision>=0.19.1",
+    "pandas>=2.2.2",
+    "click",
+    "tqdm",
+    "einops>=0.8.0",
+]
+readme = "README.md"
+requires-python = ">= 3.10"
+
+[tool.uv]
+managed = true
+
+dev-dependencies = [
+    "black[jupyter]>=24.8.0",
+    "ruff>=0.6.4",
+    "matplotlib>=3.9.2",
+    "jupyterlab>=4.2.5",
+    "isort>=5.13.2",
+    "pre-commit>=3.8.0",
+    "ipykernel>=6.29.5",
+    "nbqa"
+]
+
+[tool.nbqa]
+tools = ["black"]
+
+[tool.isort]
+profile = "black"
