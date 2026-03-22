@@ -1,0 +1,8 @@
+dim: 384
+depth: 8
+num_heads: 6
+patch_size: 4
+bottleneck_dim: 64
+mlp_ratio: 4.0
+num_classes: 0
+conditioning_mode: none

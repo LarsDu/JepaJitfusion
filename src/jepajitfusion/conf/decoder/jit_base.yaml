@@ -1,0 +1,8 @@
+dim: 768
+depth: 12
+num_heads: 12
+patch_size: 4
+bottleneck_dim: 128
+mlp_ratio: 4.0
+num_classes: 0
+conditioning_mode: none

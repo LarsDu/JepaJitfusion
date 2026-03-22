@@ -1,0 +1,6 @@
+name: pokemon_64
+img_size: 64
+num_channels: 3
+test_size: 0.15
+data_dir: downloads
+num_classes: 0

@@ -1,0 +1,36 @@
+defaults:
+  - dataset: pokemon_64
+  - encoder: vit_tiny
+  - _self_
+
+mode: lejepa
+num_epochs: 200
+batch_size: 128
+learning_rate: 3e-4
+weight_decay: 0.05
+warmup_epochs: 10
+beta1: 0.9
+beta2: 0.95
+ema_decays: [0.9999]
+amp_dtype: bfloat16
+seed: 1999
+checkpoint_dir: checkpoints
+log_every: 10
+sample_every: 50
+
+# Multi-crop
+n_global_crops: 2
+n_local_crops: 4
+global_crop_size: 64
+local_crop_size: 32
+global_crop_scale_min: 0.3
+global_crop_scale_max: 1.0
+local_crop_scale_min: 0.05
+local_crop_scale_max: 0.3
+
+# SIGReg
+sigreg_n_slices: 64
+sigreg_t_max: 3.0
+sigreg_n_quad: 17
+invariance_weight: 25.0
+regularization_weight: 1.0
