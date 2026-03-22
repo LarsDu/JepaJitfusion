@@ -4,7 +4,6 @@ import os
 from abc import ABC, abstractmethod
 
 import torch
-from omegaconf import DictConfig
 
 from jepajitfusion.trainers.summary import TrainingSummary
 from jepajitfusion.utils import get_amp_dtype, get_device, set_seed
@@ -17,13 +16,13 @@ class BaseTrainer(ABC):
     and training summary tracking.
     """
 
-    def __init__(self, cfg: DictConfig):
-        self.cfg = cfg
+    def __init__(self, seed: int, amp_dtype: str, checkpoint_dir: str):
         self.device = get_device()
-        set_seed(cfg.seed)
-        self.amp_dtype = get_amp_dtype(cfg.amp_dtype)
+        set_seed(seed)
+        self.amp_dtype = get_amp_dtype(amp_dtype)
         self.summary = TrainingSummary()
-        os.makedirs(cfg.checkpoint_dir, exist_ok=True)
+        self.checkpoint_dir = checkpoint_dir
+        os.makedirs(checkpoint_dir, exist_ok=True)
 
     @abstractmethod
     def train(self, train_loader, val_loader=None) -> TrainingSummary:

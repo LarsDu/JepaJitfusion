@@ -82,10 +82,12 @@ def test_vision_transformer_gradient_flow():
         embed_dim=256, depth=2, num_heads=4,
     )
     x = torch.randn(2, 3, 64, 64)
-    out = vit(x)
+    out = vit(x, return_all_tokens=True)  # (B, N+1, D)
     loss = out.sum()
     loss.backward()
     # Check that gradients flow through the transformer
-    # Test on qkv weights which are directly in the attention path
-    assert vit.blocks[0].attn.qkv.weight.grad is not None
-    assert vit.blocks[0].attn.qkv.weight.grad.abs().sum() > 0
+    # Use all-token output so gradients flow through every position
+    assert vit.blocks[-1].mlp.fc1.weight.grad is not None
+    assert vit.blocks[-1].mlp.fc1.weight.grad.abs().sum() > 0
+    assert vit.patch_embed.proj.weight.grad is not None
+    assert vit.patch_embed.proj.weight.grad.abs().sum() > 0

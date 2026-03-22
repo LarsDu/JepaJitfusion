@@ -3,7 +3,6 @@ defaults:
   - encoder: vit_tiny
   - _self_
 
-mode: lejepa
 num_epochs: 200
 batch_size: 128
 learning_rate: 3e-4

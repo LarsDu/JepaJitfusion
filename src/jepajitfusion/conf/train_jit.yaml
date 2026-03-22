@@ -3,7 +3,6 @@ defaults:
   - decoder: jit_tiny
   - _self_
 
-mode: jit
 num_epochs: 500
 batch_size: 64
 learning_rate: 1e-4

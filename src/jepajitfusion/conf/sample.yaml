@@ -4,8 +4,4 @@ num_samples: 16
 num_steps: 50
 cfg_scale: 1.5
 seed: 1999
-conditioning_mode: none
-encoder_checkpoint: ""
 class_label: null
-img_size: 64
-num_channels: 3

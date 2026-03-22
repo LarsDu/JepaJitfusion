@@ -1,3 +1,9 @@
+"""Typed config for sampling.
+
+Model architecture is loaded from the checkpoint — only sampling
+parameters need to be specified here.
+"""
+
 from dataclasses import dataclass
 from typing import Optional
 
@@ -10,8 +16,4 @@ class SampleConfig:
     num_steps: int = 50
     cfg_scale: float = 1.5
     seed: int = 1999
-    conditioning_mode: str = "none"
-    encoder_checkpoint: str = ""
     class_label: Optional[int] = None
-    img_size: int = 64
-    num_channels: int = 3
