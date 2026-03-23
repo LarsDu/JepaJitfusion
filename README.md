@@ -73,6 +73,8 @@ uv run pytest tests/ -v
 
 All training uses [Hydra](https://hydra.cc/) for configuration. Override any config value with `key=value` syntax.
 
+Each training run is assigned a unique **run ID** (e.g., `jit_a1b2c3d4`) and writes all checkpoints and samples to its own directory under `checkpoints/<run_id>/`. This prevents runs from overwriting each other.
+
 ### Train a LeJEPA encoder (self-supervised)
 
 ```bash
@@ -96,6 +98,12 @@ uv run python -m jepajitfusion.train_jit_app
 
 Train on Pokemon 11k with default JiT-Tiny decoder (384-dim, 8 layers, ~8M params). Unconditional generation using flow-matching with v-loss.
 
+Use the smaller JiT-Micro config for faster iteration:
+
+```bash
+uv run python -m jepajitfusion.train_jit_app decoder=jit_micro
+```
+
 ### Train with class conditioning (Tiny-ImageNet)
 
 ```bash
@@ -111,8 +119,19 @@ First train a LeJEPA encoder, then use its checkpoint to condition the decoder:
 
 ```bash
 uv run python -m jepajitfusion.train_fusion_app \
-  encoder_checkpoint=checkpoints/lejepa_last.pth
+  encoder_checkpoint=checkpoints/<lejepa_run_id>/lejepa_last.pth
 ```
+
+### Resume a training run
+
+Pass the run ID from a previous run to resume from its latest checkpoint:
+
+```bash
+# The run ID is printed at startup, e.g. "Run: jit_a1b2c3d4"
+uv run python -m jepajitfusion.train_jit_app decoder=jit_micro run_id=jit_a1b2c3d4
+```
+
+This restores model weights, optimizer state, and EMA models, and continues training from the last saved epoch. The learning rate schedule is also correctly resumed.
 
 ## Sampling
 
@@ -120,7 +139,7 @@ uv run python -m jepajitfusion.train_fusion_app \
 
 ```bash
 uv run python -m jepajitfusion.sample_app \
-  checkpoint_path=checkpoints/jit_last.pth \
+  checkpoint_path=checkpoints/<run_id>/jit_last.pth \
   num_samples=32 \
   output_dir=samples/pokemon
 ```
@@ -129,7 +148,7 @@ uv run python -m jepajitfusion.sample_app \
 
 ```bash
 uv run python -m jepajitfusion.sample_app \
-  checkpoint_path=checkpoints/jit_last.pth \
+  checkpoint_path=checkpoints/<run_id>/jit_last.pth \
   num_samples=16 \
   class_label=42 \
   cfg_scale=2.0
@@ -156,10 +175,11 @@ All datasets are downloaded automatically on first use.
 
 ### Decoder (JiT)
 
-| Config | dim | depth | heads | params | Usage |
-|--------|-----|-------|-------|--------|-------|
-| `decoder=jit_tiny` | 384 | 8 | 6 | ~8M | Pokemon, ImageNette |
-| `decoder=jit_base` | 768 | 12 | 12 | ~85M | Tiny-ImageNet |
+| Config | dim | depth | heads | patch_size | params | Usage |
+|--------|-----|-------|-------|------------|--------|-------|
+| `decoder=jit_micro` | 128 | 6 | 4 | 8 | ~1.9M | Fast iteration, prototyping |
+| `decoder=jit_tiny` | 384 | 8 | 6 | 4 | ~8M | Pokemon, ImageNette |
+| `decoder=jit_base` | 768 | 12 | 12 | 4 | ~85M | Tiny-ImageNet |
 
 ## Project Structure
 

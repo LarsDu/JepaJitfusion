@@ -30,6 +30,7 @@ class LeJEPATrainConfig:
     amp_dtype: str = "bfloat16"
     seed: int = 1999
     checkpoint_dir: str = "checkpoints"
+    run_id: str = ""
     log_every: int = 10
     sample_every: int = 50
     # Multi-crop
@@ -68,6 +69,7 @@ class JiTTrainConfig:
     amp_dtype: str = "bfloat16"
     seed: int = 1999
     checkpoint_dir: str = "checkpoints"
+    run_id: str = ""
     log_every: int = 10
     sample_every: int = 50
     # Diffusion
@@ -97,6 +99,7 @@ class FusionTrainConfig:
     amp_dtype: str = "bfloat16"
     seed: int = 1999
     checkpoint_dir: str = "checkpoints"
+    run_id: str = ""
     log_every: int = 10
     sample_every: int = 50
     # Diffusion

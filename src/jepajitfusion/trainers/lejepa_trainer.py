@@ -11,7 +11,7 @@ from jepajitfusion.encoder.projection_head import ProjectionHead
 from jepajitfusion.encoder.sigreg import SIGReg
 from jepajitfusion.encoder.vit import VisionTransformer
 from jepajitfusion.models.ema import MultiEMA
-from jepajitfusion.trainers.base_trainer import BaseTrainer
+from jepajitfusion.trainers.base_trainer import BaseTrainer, generate_run_id
 from jepajitfusion.trainers.summary import TrainingSummary
 from jepajitfusion.utils import get_cosine_schedule_with_warmup
 
@@ -27,10 +27,12 @@ class LeJEPATrainer(BaseTrainer):
     """
 
     def __init__(self, config: LeJEPATrainConfig):
+        run_id = config.run_id or generate_run_id("lejepa")
         super().__init__(
             seed=config.seed,
             amp_dtype=config.amp_dtype,
             checkpoint_dir=config.checkpoint_dir,
+            run_id=run_id,
         )
         self.config = config
         enc = config.encoder
@@ -87,6 +89,26 @@ class LeJEPATrainer(BaseTrainer):
         n_params = sum(p.numel() for p in self.encoder.parameters()) / 1e6
         print(f"LeJEPA encoder: {n_params:.1f}M parameters")
 
+        # Resume from latest checkpoint if run_id was explicitly provided
+        self.start_epoch = 0
+        if config.run_id:
+            self._try_resume()
+
+    def _try_resume(self) -> None:
+        """Attempt to resume from the latest checkpoint in the run directory."""
+        ckpt_path = self.find_latest_checkpoint("lejepa")
+        if ckpt_path is None:
+            return
+
+        ckpt = self.load_checkpoint(ckpt_path)
+        self.encoder.load_state_dict(ckpt["model_state_dict"])
+        self.projector.load_state_dict(ckpt["projector_state_dict"])
+        self.optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+        for ema_model, state in zip(self.ema.ema_models, ckpt["ema_state_dicts"]):
+            ema_model.load_state_dict(state)
+        self.start_epoch = ckpt["epoch"] + 1
+        print(f"Resumed from {ckpt_path} (epoch {ckpt['epoch']})")
+
     def _build_dataloaders(self):
         """Build train/test dataloaders with multi-crop augmentation."""
         ds = self.config.dataset
@@ -114,7 +136,14 @@ class LeJEPATrainer(BaseTrainer):
             self.optimizer, warmup_steps, total_steps
         )
 
-        for epoch in range(self.config.num_epochs):
+        # Fast-forward scheduler if resuming
+        if self.start_epoch > 0:
+            skip_steps = self.start_epoch * len(train_loader)
+            for _ in range(skip_steps):
+                scheduler.step()
+            print(f"Resuming from epoch {self.start_epoch}, scheduler advanced {skip_steps} steps")
+
+        for epoch in range(self.start_epoch, self.config.num_epochs):
             self.encoder.train()
             self.projector.train()
             epoch_loss = 0.0
@@ -157,6 +186,7 @@ class LeJEPATrainer(BaseTrainer):
                 self.save_checkpoint(
                     os.path.join(self.checkpoint_dir, f"lejepa_epoch_{epoch + 1}.pth"),
                     epoch=epoch,
+                    run_id=self.run_id,
                     model_state_dict=self.encoder.state_dict(),
                     projector_state_dict=self.projector.state_dict(),
                     ema_state_dicts=[m.state_dict() for m in self.ema.ema_models],
@@ -167,6 +197,7 @@ class LeJEPATrainer(BaseTrainer):
         self.save_checkpoint(
             os.path.join(self.checkpoint_dir, "lejepa_last.pth"),
             epoch=self.config.num_epochs - 1,
+            run_id=self.run_id,
             model_state_dict=self.encoder.state_dict(),
             projector_state_dict=self.projector.state_dict(),
             ema_state_dicts=[m.state_dict() for m in self.ema.ema_models],
