@@ -8,14 +8,10 @@ Usage:
 import os
 
 import hydra
-from hydra.core.config_store import ConfigStore
 from omegaconf import DictConfig, OmegaConf
 
-from jepajitfusion.config import JiTTrainConfig
+from jepajitfusion.config import DataConfig, DecoderConfig, JiTTrainConfig
 from jepajitfusion.trainers.jit_trainer import JiTTrainer
-
-cs = ConfigStore.instance()
-cs.store(name="train_jit", node=JiTTrainConfig)
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="train_jit")
@@ -23,7 +19,13 @@ def main(cfg: DictConfig) -> None:
     os.chdir(hydra.utils.get_original_cwd())
     print(OmegaConf.to_yaml(cfg))
 
-    config: JiTTrainConfig = OmegaConf.to_object(cfg)
+    raw = OmegaConf.to_container(cfg, resolve=True)
+    config = JiTTrainConfig(
+        dataset=DataConfig(**raw.pop("dataset")),
+        decoder=DecoderConfig(**raw.pop("decoder")),
+        **raw,
+    )
+
     trainer = JiTTrainer(config)
     summary = trainer.train()
     print(f"Training complete. Final loss: {summary.train_losses[-1]:.4f}")

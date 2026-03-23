@@ -11,7 +11,6 @@ import os
 
 import hydra
 import torch
-from hydra.core.config_store import ConfigStore
 from omegaconf import DictConfig, OmegaConf
 
 from jepajitfusion.config import DataConfig, DecoderConfig, SampleConfig
@@ -20,15 +19,12 @@ from jepajitfusion.decoder.jit_model import JiTModel
 from jepajitfusion.decoder.sampler import HeunSampler
 from jepajitfusion.utils import get_device, set_seed
 
-cs = ConfigStore.instance()
-cs.store(name="sample", node=SampleConfig)
-
 
 @hydra.main(version_base=None, config_path="conf", config_name="sample")
 def sample_app(cfg: DictConfig) -> None:
     os.chdir(hydra.utils.get_original_cwd())
 
-    config: SampleConfig = OmegaConf.to_object(cfg)
+    config = SampleConfig(**OmegaConf.to_container(cfg, resolve=True))
     device = get_device()
     set_seed(config.seed)
 

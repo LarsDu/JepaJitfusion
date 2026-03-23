@@ -104,9 +104,9 @@ class VisionRoPE(nn.Module):
         Returns:
             Rotated (q, k) with same shape.
         """
-        return self._apply(q), self._apply(k)
+        return self._rotate(q), self._rotate(k)
 
-    def _apply(self, x: torch.Tensor) -> torch.Tensor:
+    def _rotate(self, x: torch.Tensor) -> torch.Tensor:
         half = x.shape[-1] // 2
         x1 = x[..., :half]
         x2 = x[..., half:]
