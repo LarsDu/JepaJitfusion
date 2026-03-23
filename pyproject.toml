@@ -6,7 +6,7 @@ authors = [
     { name = "Larry Du", email = "larrydu88@gmail.com" }
 ]
 readme = "README.md"
-requires-python = ">= 3.14"
+requires-python = ">= 3.13"
 
 dependencies = [
     "torch>=2.4.1",
