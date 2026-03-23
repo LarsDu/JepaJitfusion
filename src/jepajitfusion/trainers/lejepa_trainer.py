@@ -1,5 +1,6 @@
 """LeJEPA trainer: self-supervised encoder training with SIGReg loss."""
 
+import dataclasses
 import os
 
 import torch
@@ -191,6 +192,8 @@ class LeJEPATrainer(BaseTrainer):
                     projector_state_dict=self.projector.state_dict(),
                     ema_state_dicts=[m.state_dict() for m in self.ema.ema_models],
                     optimizer_state_dict=self.optimizer.state_dict(),
+                    encoder_config=dataclasses.asdict(self.config.encoder),
+                    dataset_config=dataclasses.asdict(self.config.dataset),
                 )
 
         # Save final checkpoint
@@ -202,6 +205,8 @@ class LeJEPATrainer(BaseTrainer):
             projector_state_dict=self.projector.state_dict(),
             ema_state_dicts=[m.state_dict() for m in self.ema.ema_models],
             optimizer_state_dict=self.optimizer.state_dict(),
+            encoder_config=dataclasses.asdict(self.config.encoder),
+            dataset_config=dataclasses.asdict(self.config.dataset),
         )
 
         return self.summary
