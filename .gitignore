@@ -6,6 +6,9 @@
 # Dev notebooks excluded from source control
 dev_notebooks/
 
+# Hydra outputs
+outputs/
+
 # Checkpoints and downloads
 checkpoints/
 downloads/
