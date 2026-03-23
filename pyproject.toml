@@ -5,6 +5,9 @@ description = "LeJEPA + JiT diffusion: self-supervised encoder meets flow-matchi
 authors = [
     { name = "Larry Du", email = "larrydu88@gmail.com" }
 ]
+readme = "README.md"
+requires-python = ">= 3.14"
+
 dependencies = [
     "torch>=2.4.1",
     "numpy>=2.1.1",
@@ -18,13 +21,9 @@ dependencies = [
     "py7zr>=0.20",
     "requests>=2.31",
 ]
-readme = "README.md"
-requires-python = ">= 3.14"
 
-[tool.uv]
-managed = true
-
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "black[jupyter]>=24.8.0",
     "ruff>=0.6.4",
     "matplotlib>=3.9.2",
@@ -35,6 +34,11 @@ dev-dependencies = [
     "nbqa",
     "pytest>=8.0",
 ]
+
+
+[tool.uv]
+managed = true
+
 
 [build-system]
 requires = ["hatchling"]
