@@ -158,7 +158,7 @@ uv run python -m jepajitfusion.sample_app \
 
 | Dataset | Images | Resolution | Classes | Config |
 |---------|--------|------------|---------|--------|
-| Pokemon 11k | ~11,800 | 64×64 | — | `dataset=pokemon_64` |
+| Pokemon 11k | ~11,800 | 96×96 | — | `dataset=pokemon_11k` |
 | Tiny-ImageNet-200 | 100,000 | 64×64 | 200 | `dataset=imagenet_tiny` |
 | ImageNette | ~13,000 | 64×64 | 10 | `dataset=imagenette` |
 

@@ -36,7 +36,7 @@ class LeJEPATrainConfig:
     # Multi-crop
     n_global_crops: int = 2
     n_local_crops: int = 4
-    global_crop_size: int = 64
+    global_crop_size: int = 96
     local_crop_size: int = 32
     global_crop_scale_min: float = 0.3
     global_crop_scale_max: float = 1.0
@@ -75,7 +75,7 @@ class JiTTrainConfig:
     # Diffusion
     P_mean: float = -0.8
     P_std: float = 0.8
-    noise_scale: float = 0.25
+    noise_scale: float = 0.375
     cfg_scale: float = 1.5
 
 
@@ -105,7 +105,7 @@ class FusionTrainConfig:
     # Diffusion
     P_mean: float = -0.8
     P_std: float = 0.8
-    noise_scale: float = 0.25
+    noise_scale: float = 0.375
     cfg_scale: float = 1.5
     # Fusion-specific
     encoder_checkpoint: str = "checkpoints/lejepa_last.pth"

@@ -1,5 +1,5 @@
 defaults:
-  - dataset: pokemon_64
+  - dataset: pokemon_11k
   - encoder: vit_tiny
   - _self_
 
@@ -20,7 +20,7 @@ sample_every: 50
 # Multi-crop
 n_global_crops: 2
 n_local_crops: 4
-global_crop_size: 64
+global_crop_size: 96
 local_crop_size: 32
 global_crop_scale_min: 0.3
 global_crop_scale_max: 1.0

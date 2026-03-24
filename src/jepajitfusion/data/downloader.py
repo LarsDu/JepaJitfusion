@@ -116,7 +116,7 @@ def convert_to_rgb_with_white_bg(
     bg_image.save(output_path, format=output_format)
 
 
-def download_pokemon_64(
+def download_pokemon_11k(
     transform: Callable | None = None,
     data_dir: str | Path = "downloads",
     test_size: float = 0.15,
@@ -129,7 +129,7 @@ def download_pokemon_64(
     url = "https://raw.githubusercontent.com/jonasgrebe/tf-pokemon-generation/master/data/pokemon_sprite_dataset.7z"
     md5sum = "8b620579e0731115e8b30d24998b8c8b"
 
-    output_dir = Path(data_dir) / "pokemon_64"
+    output_dir = Path(data_dir) / "pokemon_11k"
     train_dir = output_dir / "train"
     test_dir = output_dir / "test"
 

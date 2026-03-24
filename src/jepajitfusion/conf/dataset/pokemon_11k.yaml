@@ -1,5 +1,5 @@
-name: pokemon_64
-img_size: 64
+name: pokemon_11k
+img_size: 96
 num_channels: 3
 test_size: 0.15
 data_dir: downloads

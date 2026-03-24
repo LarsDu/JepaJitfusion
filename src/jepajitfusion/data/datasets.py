@@ -8,12 +8,12 @@ from torchvision.datasets import ImageFolder
 
 from jepajitfusion.data.downloader import (
     download_imagenette,
-    download_pokemon_64,
+    download_pokemon_11k,
     download_tiny_imagenet,
 )
 
 DATASET_REGISTRY = {
-    "pokemon_64": download_pokemon_64,
+    "pokemon_11k": download_pokemon_11k,
     "imagenet_tiny": download_tiny_imagenet,
     "imagenette": download_imagenette,
 }

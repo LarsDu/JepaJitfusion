@@ -1,5 +1,5 @@
 defaults:
-  - dataset: pokemon_64
+  - dataset: pokemon_11k
   - encoder: vit_tiny
   - decoder: jit_tiny
   - _self_
@@ -21,7 +21,7 @@ sample_every: 50
 # Diffusion
 P_mean: -0.8
 P_std: 0.8
-noise_scale: 0.25
+noise_scale: 0.375
 cfg_scale: 1.5
 
 # Fusion
