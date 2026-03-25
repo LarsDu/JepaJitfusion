@@ -184,58 +184,39 @@ def download_tiny_imagenet(
     data_dir: str | Path = "downloads",
     **kwargs,
 ) -> tuple[ImageFolder, ImageFolder]:
-    """Download Tiny-ImageNet-200 (64x64, 200 classes, 100k images)."""
-    url = "http://cs231n.stanford.edu/tiny-imagenet-200.zip"
-    output_dir = Path(data_dir) / "imagenet_tiny"
+    """Download Tiny-ImageNet-200 from HuggingFace (64x64, 200 classes, 100k images).
 
-    train_dir = output_dir / "tiny-imagenet-200" / "train"
-    val_dir = output_dir / "tiny-imagenet-200" / "val"
+    Source: https://huggingface.co/datasets/zh-plus/tiny-imagenet
+    """
+    from datasets import load_dataset
+
+    output_dir = Path(data_dir) / "imagenet_tiny"
+    train_dir = output_dir / "train"
+    val_dir = output_dir / "val"
 
     if train_dir.exists() and val_dir.exists():
-        # Reorganize val if needed (flat structure → class folders)
-        _reorganize_tiny_imagenet_val(val_dir)
         return (
             ImageFolder(str(train_dir), transform=transform),
             ImageFolder(str(val_dir), transform=transform),
         )
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    archive_path = output_dir / "tiny-imagenet-200.zip"
-    download_file(url, archive_path)
-    unpack_zip(archive_path, output_dir, delete_archive=True)
+    print("Downloading Tiny-ImageNet-200 from HuggingFace...")
+    ds = load_dataset("zh-plus/tiny-imagenet")
 
-    _reorganize_tiny_imagenet_val(val_dir)
+    for split_name, split_dir in [("train", train_dir), ("valid", val_dir)]:
+        split = ds[split_name]
+        print(f"Saving {len(split)} {split_name} images...")
+        for i, example in enumerate(tqdm(split, desc=split_name)):
+            img = example["image"].convert("RGB")
+            label = example["label"]
+            class_dir = split_dir / f"{label:03d}"
+            class_dir.mkdir(parents=True, exist_ok=True)
+            img.save(class_dir / f"{i:06d}.png")
 
     return (
         ImageFolder(str(train_dir), transform=transform),
         ImageFolder(str(val_dir), transform=transform),
     )
-
-
-def _reorganize_tiny_imagenet_val(val_dir: Path) -> None:
-    """Reorganize Tiny-ImageNet val set from flat to class-folder structure."""
-    annotations_file = val_dir / "val_annotations.txt"
-    images_dir = val_dir / "images"
-
-    if not annotations_file.exists() or not images_dir.exists():
-        return  # Already reorganized or missing
-
-    # Parse annotations: filename → class_id
-    with open(annotations_file) as f:
-        for line in f:
-            parts = line.strip().split("\t")
-            fname, class_id = parts[0], parts[1]
-            class_dir = val_dir / class_id / "images"
-            class_dir.mkdir(parents=True, exist_ok=True)
-            src = images_dir / fname
-            if src.exists():
-                shutil.move(str(src), str(class_dir / fname))
-
-    # Clean up
-    if images_dir.exists():
-        shutil.rmtree(images_dir)
-    if annotations_file.exists():
-        annotations_file.unlink()
 
 
 def download_imagenette(
