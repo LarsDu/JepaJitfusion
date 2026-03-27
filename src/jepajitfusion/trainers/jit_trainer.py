@@ -199,4 +199,5 @@ class JiTTrainer(BaseTrainer):
             optimizer_state_dict=self.optimizer.state_dict(),
             decoder_config=dataclasses.asdict(self.config.decoder),
             dataset_config=dataclasses.asdict(self.config.dataset),
+            train_losses=self.summary.train_losses,
         )

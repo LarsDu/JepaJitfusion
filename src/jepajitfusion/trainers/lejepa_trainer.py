@@ -194,6 +194,7 @@ class LeJEPATrainer(BaseTrainer):
                     optimizer_state_dict=self.optimizer.state_dict(),
                     encoder_config=dataclasses.asdict(self.config.encoder),
                     dataset_config=dataclasses.asdict(self.config.dataset),
+                    train_losses=self.summary.train_losses,
                 )
 
         # Save final checkpoint
@@ -207,6 +208,7 @@ class LeJEPATrainer(BaseTrainer):
             optimizer_state_dict=self.optimizer.state_dict(),
             encoder_config=dataclasses.asdict(self.config.encoder),
             dataset_config=dataclasses.asdict(self.config.dataset),
+            train_losses=self.summary.train_losses,
         )
 
         return self.summary

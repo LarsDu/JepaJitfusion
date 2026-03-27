@@ -215,4 +215,5 @@ class FusionTrainer(BaseTrainer):
             decoder_config=dataclasses.asdict(self.config.decoder),
             dataset_config=dataclasses.asdict(self.config.dataset),
             encoder_config=dataclasses.asdict(self.config.encoder),
+            train_losses=self.summary.train_losses,
         )
