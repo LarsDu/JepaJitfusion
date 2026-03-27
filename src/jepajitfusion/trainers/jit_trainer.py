@@ -7,7 +7,7 @@ import torch
 
 from jepajitfusion.config import JiTTrainConfig
 from jepajitfusion.data.datasets import get_dataloader, get_dataset
-from jepajitfusion.data.transforms import forward_transform, reverse_transform
+from jepajitfusion.data.transforms import eval_transform, forward_transform, reverse_transform
 from jepajitfusion.decoder.diffusion import compute_v_loss, sample_logit_normal_time
 from jepajitfusion.decoder.jit_model import JiTModel
 from jepajitfusion.decoder.sampler import HeunSampler
@@ -79,20 +79,30 @@ class JiTTrainer(BaseTrainer):
         for ema_model, state in zip(self.ema.ema_models, ckpt["ema_state_dicts"]):
             ema_model.load_state_dict(state)
         self.start_epoch = ckpt["epoch"] + 1
+        self.summary.train_losses = ckpt.get("train_losses", [])
+        self.summary.val_losses = ckpt.get("val_losses", [])
         print(f"Resumed from {ckpt_path} (epoch {ckpt['epoch']})")
 
     def _build_dataloaders(self):
         ds = self.config.dataset
         transform = forward_transform(ds.img_size)
-        train_ds, test_ds = get_dataset(
-            ds.name, transform=transform, data_dir=ds.data_dir, test_size=ds.test_size
+        val_tf = eval_transform(ds.img_size)
+        train_ds, val_ds = get_dataset(
+            ds.name,
+            transform=transform,
+            val_transform=val_tf,
+            data_dir=ds.data_dir,
+            test_size=ds.test_size,
         )
         train_loader = get_dataloader(train_ds, batch_size=self.config.batch_size)
-        return train_loader
+        val_loader = get_dataloader(
+            val_ds, batch_size=self.config.batch_size, shuffle=False
+        )
+        return train_loader, val_loader
 
     def train(self, train_loader=None, val_loader=None) -> TrainingSummary:
         if train_loader is None:
-            train_loader = self._build_dataloaders()
+            train_loader, val_loader = self._build_dataloaders()
 
         total_steps = self.config.num_epochs * len(train_loader)
         warmup_steps = self.config.warmup_epochs * len(train_loader)
@@ -148,6 +158,27 @@ class JiTTrainer(BaseTrainer):
             self.summary.add_train_loss(avg_loss)
             print(f"Epoch {epoch}: avg_loss={avg_loss:.4f}")
 
+            # Validation
+            if val_loader is not None and (epoch + 1) % self.config.validate_every == 0:
+                def _val_loss_fn(batch):
+                    images, labels = batch
+                    images = images.to(self.device)
+                    cond = None
+                    if self.model.conditioning_mode == "label":
+                        cond = labels.to(self.device)
+                    B = images.shape[0]
+                    t = sample_logit_normal_time(
+                        B, self.config.P_mean, self.config.P_std, device=self.device
+                    )
+                    noise = torch.randn_like(images)
+                    return compute_v_loss(
+                        self.model, images, t, noise, cond, self.config.noise_scale
+                    ).item()
+
+                self.model.eval()
+                val_loss = self._validate_epoch(val_loader, _val_loss_fn)
+                print(f"Epoch {epoch}: val_loss={val_loss:.4f}")
+
             # Sample and checkpoint periodically
             if (epoch + 1) % self.config.sample_every == 0:
                 self._sample_and_save(epoch)
@@ -200,4 +231,5 @@ class JiTTrainer(BaseTrainer):
             decoder_config=dataclasses.asdict(self.config.decoder),
             dataset_config=dataclasses.asdict(self.config.dataset),
             train_losses=self.summary.train_losses,
+            val_losses=self.summary.val_losses,
         )

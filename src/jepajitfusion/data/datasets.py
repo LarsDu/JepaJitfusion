@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.datasets import ImageFolder
 
 from jepajitfusion.data.downloader import (
+    download_imagenet_1k,
     download_imagenette,
     download_pokemon_11k,
     download_tiny_imagenet,
@@ -15,6 +16,7 @@ from jepajitfusion.data.downloader import (
 DATASET_REGISTRY = {
     "pokemon_11k": download_pokemon_11k,
     "imagenet_tiny": download_tiny_imagenet,
+    "imagenet_1k": download_imagenet_1k,
     "imagenette": download_imagenette,
 }
 
@@ -22,14 +24,25 @@ DATASET_REGISTRY = {
 def get_dataset(
     name: str,
     transform: Callable | None = None,
+    val_transform: Callable | None = None,
     data_dir: str = "downloads",
     test_size: float = 0.15,
 ) -> tuple[ImageFolder, ImageFolder]:
-    """Get train/test datasets by name."""
+    """Get train/test datasets by name.
+
+    Args:
+        val_transform: Transform for the val/test split. Falls back to
+            ``transform`` when *None* (backward compatible).
+    """
     if name not in DATASET_REGISTRY:
         raise ValueError(f"Unknown dataset: {name}. Available: {list(DATASET_REGISTRY)}")
     download_fn = DATASET_REGISTRY[name]
-    return download_fn(transform=transform, data_dir=data_dir, test_size=test_size)
+    return download_fn(
+        transform=transform,
+        val_transform=val_transform,
+        data_dir=data_dir,
+        test_size=test_size,
+    )
 
 
 class MultiCropDataset(Dataset):

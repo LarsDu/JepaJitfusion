@@ -108,28 +108,38 @@ class LeJEPATrainer(BaseTrainer):
         for ema_model, state in zip(self.ema.ema_models, ckpt["ema_state_dicts"]):
             ema_model.load_state_dict(state)
         self.start_epoch = ckpt["epoch"] + 1
+        self.summary.train_losses = ckpt.get("train_losses", [])
+        self.summary.val_losses = ckpt.get("val_losses", [])
         print(f"Resumed from {ckpt_path} (epoch {ckpt['epoch']})")
 
     def _build_dataloaders(self):
-        """Build train/test dataloaders with multi-crop augmentation."""
+        """Build train/val dataloaders with multi-crop augmentation."""
         ds = self.config.dataset
         # Get raw datasets (no transform — multicrop handles it)
-        train_ds, test_ds = get_dataset(
+        train_ds, val_ds = get_dataset(
             ds.name, transform=None, data_dir=ds.data_dir, test_size=ds.test_size
         )
-        # Wrap train set with multi-crop
+        # Wrap both sets with multi-crop (val set is held out; multicrop
+        # is needed because SIGReg requires two views)
         train_ds = MultiCropDataset(train_ds, self.multicrop)
+        val_ds = MultiCropDataset(val_ds, self.multicrop)
         train_loader = get_dataloader(
             train_ds,
             batch_size=self.config.batch_size,
             shuffle=True,
             collate_fn=multicrop_collate,
         )
-        return train_loader
+        val_loader = get_dataloader(
+            val_ds,
+            batch_size=self.config.batch_size,
+            shuffle=False,
+            collate_fn=multicrop_collate,
+        )
+        return train_loader, val_loader
 
     def train(self, train_loader=None, val_loader=None) -> TrainingSummary:
         if train_loader is None:
-            train_loader = self._build_dataloaders()
+            train_loader, val_loader = self._build_dataloaders()
 
         total_steps = self.config.num_epochs * len(train_loader)
         warmup_steps = self.config.warmup_epochs * len(train_loader)
@@ -182,6 +192,21 @@ class LeJEPATrainer(BaseTrainer):
             self.summary.add_train_loss(avg_loss)
             print(f"Epoch {epoch}: avg_loss={avg_loss:.4f}")
 
+            # Validation
+            if val_loader is not None and (epoch + 1) % self.config.validate_every == 0:
+                def _val_loss_fn(batch):
+                    crops, _labels = batch
+                    global_crops = [c.to(self.device) for c in crops[: self.multicrop.n_global]]
+                    z1 = self.projector(self.encoder(global_crops[0]))
+                    z2 = self.projector(self.encoder(global_crops[1]))
+                    loss, _ = self.sigreg(z1, z2)
+                    return loss.item()
+
+                self.encoder.eval()
+                self.projector.eval()
+                val_loss = self._validate_epoch(val_loader, _val_loss_fn)
+                print(f"Epoch {epoch}: val_loss={val_loss:.4f}")
+
             # Save checkpoint periodically
             if (epoch + 1) % self.config.sample_every == 0 or epoch == self.config.num_epochs - 1:
                 self.save_checkpoint(
@@ -195,6 +220,7 @@ class LeJEPATrainer(BaseTrainer):
                     encoder_config=dataclasses.asdict(self.config.encoder),
                     dataset_config=dataclasses.asdict(self.config.dataset),
                     train_losses=self.summary.train_losses,
+                    val_losses=self.summary.val_losses,
                 )
 
         # Save final checkpoint

@@ -33,6 +33,7 @@ class LeJEPATrainConfig:
     run_id: str = ""
     log_every: int = 10
     sample_every: int = 50
+    validate_every: int = 10
     # Multi-crop
     n_global_crops: int = 2
     n_local_crops: int = 4
@@ -72,6 +73,7 @@ class JiTTrainConfig:
     run_id: str = ""
     log_every: int = 10
     sample_every: int = 50
+    validate_every: int = 10
     # Diffusion
     P_mean: float = -0.8
     P_std: float = 0.8
@@ -102,6 +104,7 @@ class FusionTrainConfig:
     run_id: str = ""
     log_every: int = 10
     sample_every: int = 50
+    validate_every: int = 10
     # Diffusion
     P_mean: float = -0.8
     P_std: float = 0.8
