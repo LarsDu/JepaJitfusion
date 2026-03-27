@@ -164,8 +164,20 @@ class JiTTrainer(BaseTrainer):
         ema_model.eval()
 
         ds = self.config.dataset
+        dec = self.config.decoder
         shape = (n_samples, ds.num_channels, ds.img_size, ds.img_size)
-        samples = self.sampler.sample(ema_model, shape, self.device)
+
+        cond = None
+        uncond_cond = None
+        if self.model.conditioning_mode == "label":
+            cond = torch.randint(0, dec.num_classes, (n_samples,), device=self.device)
+            uncond_cond = torch.full(
+                (n_samples,), dec.num_classes, device=self.device, dtype=torch.long
+            )
+
+        samples = self.sampler.sample(
+            ema_model, shape, self.device, conditioning=cond, uncond_conditioning=uncond_cond
+        )
 
         # Save as grid
         rev_t = reverse_transform()
