@@ -40,12 +40,16 @@ class UnivariateGaussianityTest(nn.Module):
         # Compute cos(t_k * z_j) for all samples, slices, and quadrature points
         # z.unsqueeze(-1): (B, S, 1), t_points: (1, 1, Q)
         tz = z.unsqueeze(-1) * self.t_points.unsqueeze(0).unsqueeze(0)  # (B, S, Q)
-        # Empirical CF (real part, by symmetry): mean over batch
-        phi_emp = torch.cos(tz).mean(dim=0)  # (S, Q)
+        # Empirical characteristic function: real (cos) AND imaginary (sin) parts.
+        # The standard normal CF is real (phi_normal), so its imaginary part is 0.
+        cos_emp = torch.cos(tz).mean(dim=0)  # (S, Q)
+        sin_emp = torch.sin(tz).mean(dim=0)  # (S, Q)
 
-        # Squared difference weighted by Gaussian window
-        diff = phi_emp - self.phi_normal.unsqueeze(0)  # (S, Q)
-        loss = (self.weights.unsqueeze(0) * diff**2).sum(dim=-1).mean()
+        # |phi_emp - phi_normal|^2 = (cos_emp - phi_normal)^2 + sin_emp^2.
+        # The sin^2 term makes the test sensitive to asymmetry/skew (and non-zero
+        # mean); dropping it left the test blind to the odd moments.
+        err = (cos_emp - self.phi_normal.unsqueeze(0)) ** 2 + sin_emp**2  # (S, Q)
+        loss = (self.weights.unsqueeze(0) * err).sum(dim=-1).mean()
         return loss
 
 
