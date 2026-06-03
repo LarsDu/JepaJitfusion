@@ -119,8 +119,10 @@ class SIGReg(nn.Module):
         n_slices: Number of random projection directions.
         t_max: Max quadrature point for CF test.
         n_quad: Number of quadrature points.
-        invariance_weight: Weight for the invariance (MSE) term.
-        regularization_weight: Weight for the regularization (Gaussianity) term.
+        sigreg_lambda: The single leJEPA hyperparameter lambda. The total loss is
+            the convex combination
+                lambda * SIGReg + (1 - lambda) * invariance.
+            The paper/reference recommend a small value (~0.02).
     """
 
     def __init__(
@@ -129,12 +131,10 @@ class SIGReg(nn.Module):
         n_slices: int = 64,
         t_max: float = 3.0,
         n_quad: int = 17,
-        invariance_weight: float = 25.0,
-        regularization_weight: float = 1.0,
+        sigreg_lambda: float = 0.02,
     ):
         super().__init__()
-        self.invariance_weight = invariance_weight
-        self.regularization_weight = regularization_weight
+        self.sigreg_lambda = sigreg_lambda
         self.slicing_test = SlicingUnivariateTest(embed_dim, n_slices, t_max, n_quad)
 
     def forward(
@@ -156,7 +156,8 @@ class SIGReg(nn.Module):
         # Regularization: Gaussianity test on each view
         reg_loss = 0.5 * (self.slicing_test(z1) + self.slicing_test(z2))
 
-        total = self.invariance_weight * inv_loss + self.regularization_weight * reg_loss
+        # leJEPA single-hyperparameter convex combination.
+        total = self.sigreg_lambda * reg_loss + (1.0 - self.sigreg_lambda) * inv_loss
 
         metrics = {
             "invariance_loss": inv_loss.item(),

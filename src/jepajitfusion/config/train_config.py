@@ -46,8 +46,8 @@ class LeJEPATrainConfig:
     sigreg_n_slices: int = 64
     sigreg_t_max: float = 3.0
     sigreg_n_quad: int = 17
-    invariance_weight: float = 25.0
-    regularization_weight: float = 1.0
+    # Single leJEPA hyperparameter: total = lambda*SIGReg + (1-lambda)*invariance
+    sigreg_lambda: float = 0.02
 
 
 @dataclass

@@ -52,7 +52,7 @@ def test_sigreg_forward():
 
 def test_sigreg_identical_views_low_invariance():
     """Invariance loss should be near zero for identical embeddings."""
-    sigreg = SIGReg(embed_dim=256, n_slices=32, invariance_weight=1.0, regularization_weight=0.0)
+    sigreg = SIGReg(embed_dim=256, n_slices=32, sigreg_lambda=0.0)  # invariance-only
     z = torch.randn(64, 256)
     loss, metrics = sigreg(z, z)  # identical views
     assert metrics["invariance_loss"] < 1e-6

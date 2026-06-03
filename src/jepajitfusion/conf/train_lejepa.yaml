@@ -31,5 +31,5 @@ local_crop_scale_max: 0.3
 sigreg_n_slices: 64
 sigreg_t_max: 3.0
 sigreg_n_quad: 17
-invariance_weight: 25.0
-regularization_weight: 1.0
+# Single leJEPA hyperparameter: total = lambda*SIGReg + (1-lambda)*invariance
+sigreg_lambda: 0.02

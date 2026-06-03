@@ -61,8 +61,7 @@ class LeJEPATrainer(BaseTrainer):
             n_slices=config.sigreg_n_slices,
             t_max=config.sigreg_t_max,
             n_quad=config.sigreg_n_quad,
-            invariance_weight=config.invariance_weight,
-            regularization_weight=config.regularization_weight,
+            sigreg_lambda=config.sigreg_lambda,
         ).to(self.device)
 
         # EMA
