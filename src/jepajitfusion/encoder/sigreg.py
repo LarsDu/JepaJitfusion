@@ -78,10 +78,10 @@ class SlicingUnivariateTest(nn.Module):
         Returns:
             Scalar loss.
         """
-        # Center and standardize across batch (per-dimension)
-        z = z - z.mean(dim=0, keepdim=True)
-        z = z / (z.std(dim=0, keepdim=True) + 1e-6)
-
+        # NOTE: embeddings are fed to the test RAW (no centering/standardization).
+        # SIGReg's whole purpose is to push the distribution to N(0, I); normalizing
+        # mean/variance here would erase exactly the signal the loss must penalize and
+        # remove the gradient that prevents representation collapse.
         # Project to random 1D slices
         projections = z @ self.directions  # (B, n_slices)
 
