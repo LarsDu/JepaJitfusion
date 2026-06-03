@@ -3,6 +3,15 @@
 from torchvision import transforms
 
 
+def _to_signed_unit_range(t):
+    """Map a [0, 1] tensor to [-1, 1].
+
+    Defined at module level (not a lambda) so MultiCropAugmentation transforms are
+    picklable and can be used with DataLoader multiprocessing workers.
+    """
+    return (t * 2) - 1
+
+
 class MultiCropAugmentation:
     """Generates multiple augmented crops from a PIL image.
 
@@ -30,7 +39,7 @@ class MultiCropAugmentation:
             transforms.RandomHorizontalFlip(),
             transforms.ColorJitter(0.4, 0.4, 0.2, 0.1),
             transforms.ToTensor(),
-            transforms.Lambda(lambda t: (t * 2) - 1),  # normalize to [-1, 1]
+            transforms.Lambda(_to_signed_unit_range),  # normalize to [-1, 1]
         ]
 
         self.global_transform = transforms.Compose(
