@@ -1,6 +1,6 @@
 """Image transforms for training and visualization."""
 
-from typing import Callable, Sequence
+from typing import Callable, Protocol, Sequence, runtime_checkable
 
 import numpy as np
 import torch
@@ -12,6 +12,19 @@ from torchvision.transforms import (
     ToPILImage,
     ToTensor,
 )
+
+
+@runtime_checkable
+class EvalTransform(Protocol):
+    """Deterministic image transform for evaluation.
+
+    Implementations must be free of random augmentations (no random flips,
+    crops, color jitter, etc.) so that repeated calls on the same input
+    produce identical output.  This guarantee is required for any code that
+    accesses a sample more than once (e.g. encoding + display).
+    """
+
+    def __call__(self, img: object) -> torch.Tensor: ...
 
 
 def _normalize_to_neg1_1(t: torch.Tensor) -> torch.Tensor:
@@ -37,6 +50,24 @@ def forward_transform(img_size: int | Sequence[int] = 64) -> Callable:
             ToTensor(),
             _normalize_to_neg1_1,
             RandomHorizontalFlip(),
+        ]
+    )
+
+
+def eval_transform(img_size: int | Sequence[int] = 64) -> EvalTransform:
+    """Deterministic eval transform: resize, crop, normalize to [-1, 1].
+
+    Same as forward_transform but without random augmentations,
+    so repeated access to the same sample yields identical tensors.
+    """
+    if isinstance(img_size, int):
+        img_size = (img_size, img_size)
+    return Compose(
+        [
+            Resize(img_size),
+            CenterCrop(img_size),
+            ToTensor(),
+            _normalize_to_neg1_1,
         ]
     )
 

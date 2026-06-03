@@ -5,6 +5,7 @@ import os
 import re
 import uuid
 from abc import ABC, abstractmethod
+from typing import Callable
 
 import torch
 
@@ -70,3 +71,27 @@ class BaseTrainer(ABC):
             return int(m.group(1)) if m else -1
 
         return max(candidates, key=_epoch_num)
+
+    @torch.no_grad()
+    def _validate_epoch(self, val_loader, loss_fn: Callable) -> float:
+        """Run one validation pass and record the average loss.
+
+        Args:
+            val_loader: DataLoader for the validation set.
+            loss_fn: Callable that takes a batch (as yielded by val_loader)
+                and returns a scalar loss value (float).
+
+        Returns:
+            Average validation loss over the epoch.
+        """
+        total_loss = 0.0
+        n_batches = 0
+        for batch in val_loader:
+            with torch.amp.autocast(
+                device_type=self.device.type, dtype=self.amp_dtype
+            ):
+                total_loss += loss_fn(batch)
+            n_batches += 1
+        avg = total_loss / max(n_batches, 1)
+        self.summary.add_val_loss(avg)
+        return avg

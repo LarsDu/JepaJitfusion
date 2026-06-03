@@ -16,6 +16,7 @@ seed: 1999
 checkpoint_dir: checkpoints
 log_every: 10
 sample_every: 50
+validate_every: 10
 
 # Diffusion
 P_mean: -0.8

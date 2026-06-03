@@ -128,7 +128,7 @@ Pass the run ID from a previous run to resume from its latest checkpoint:
 
 ```bash
 # The run ID is printed at startup, e.g. "Run: jit_a1b2c3d4"
-uv run python -m jepajitfusion.train_jit_app decoder=jit_micro run_id=jit_a1b2c3d4
+uv run python -m jepajitfusion.train_jit_app decoder=jit_micro +run_id=jit_a1b2c3d4
 ```
 
 This restores model weights, optimizer state, and EMA models, and continues training from the last saved epoch. The learning rate schedule is also correctly resumed.

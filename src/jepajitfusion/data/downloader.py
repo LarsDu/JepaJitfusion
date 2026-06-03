@@ -118,6 +118,7 @@ def convert_to_rgb_with_white_bg(
 
 def download_pokemon_11k(
     transform: Callable | None = None,
+    val_transform: Callable | None = None,
     data_dir: str | Path = "downloads",
     test_size: float = 0.15,
     split_seed: int = 1999,
@@ -133,11 +134,12 @@ def download_pokemon_11k(
     train_dir = output_dir / "train"
     test_dir = output_dir / "test"
 
+    vt = val_transform if val_transform is not None else transform
     if train_dir.exists() and test_dir.exists():
         print(f"Found existing train/test dirs in {output_dir}")
         return (
             ImageFolder(str(train_dir), transform=transform),
-            ImageFolder(str(test_dir), transform=transform),
+            ImageFolder(str(test_dir), transform=vt),
         )
 
     # Download and extract
@@ -175,12 +177,13 @@ def download_pokemon_11k(
 
     return (
         ImageFolder(str(train_dir), transform=transform),
-        ImageFolder(str(test_dir), transform=transform),
+        ImageFolder(str(test_dir), transform=vt),
     )
 
 
 def download_tiny_imagenet(
     transform: Callable | None = None,
+    val_transform: Callable | None = None,
     data_dir: str | Path = "downloads",
     **kwargs,
 ) -> tuple[ImageFolder, ImageFolder]:
@@ -194,10 +197,11 @@ def download_tiny_imagenet(
     train_dir = output_dir / "train"
     val_dir = output_dir / "val"
 
+    vt = val_transform if val_transform is not None else transform
     if train_dir.exists() and val_dir.exists():
         return (
             ImageFolder(str(train_dir), transform=transform),
-            ImageFolder(str(val_dir), transform=transform),
+            ImageFolder(str(val_dir), transform=vt),
         )
 
     print("Downloading Tiny-ImageNet-200 from HuggingFace...")
@@ -215,12 +219,57 @@ def download_tiny_imagenet(
 
     return (
         ImageFolder(str(train_dir), transform=transform),
-        ImageFolder(str(val_dir), transform=transform),
+        ImageFolder(str(val_dir), transform=vt),
+    )
+
+
+def download_imagenet_1k(
+    transform: Callable | None = None,
+    val_transform: Callable | None = None,
+    data_dir: str | Path = "downloads",
+    **kwargs,
+) -> tuple[ImageFolder, ImageFolder]:
+    """Download ImageNet-1K from HuggingFace (1000 classes, ~1.28M train images).
+
+    Source: https://huggingface.co/datasets/ILSVRC/imagenet-1k
+    Requires a HuggingFace token with access granted to the dataset.
+    Set the HF_TOKEN environment variable or run `huggingface-cli login`.
+    """
+    from datasets import load_dataset
+
+    output_dir = Path(data_dir) / "imagenet_1k"
+    train_dir = output_dir / "train"
+    val_dir = output_dir / "val"
+
+    vt = val_transform if val_transform is not None else transform
+    if train_dir.exists() and val_dir.exists():
+        return (
+            ImageFolder(str(train_dir), transform=transform),
+            ImageFolder(str(val_dir), transform=vt),
+        )
+
+    print("Downloading ImageNet-1K from HuggingFace (this may take a while)...")
+    ds = load_dataset("ILSVRC/imagenet-1k")
+
+    for split_name, split_dir in [("train", train_dir), ("validation", val_dir)]:
+        split = ds[split_name]
+        print(f"Saving {len(split)} {split_name} images...")
+        for i, example in enumerate(tqdm(split, desc=split_name)):
+            img = example["image"].convert("RGB")
+            label = example["label"]
+            class_dir = split_dir / f"{label:04d}"
+            class_dir.mkdir(parents=True, exist_ok=True)
+            img.save(class_dir / f"{i:08d}.JPEG")
+
+    return (
+        ImageFolder(str(train_dir), transform=transform),
+        ImageFolder(str(val_dir), transform=vt),
     )
 
 
 def download_imagenette(
     transform: Callable | None = None,
+    val_transform: Callable | None = None,
     data_dir: str | Path = "downloads",
     test_size: float = 0.15,
     **kwargs,
@@ -232,10 +281,11 @@ def download_imagenette(
     train_dir = output_dir / "imagenette2-160" / "train"
     val_dir = output_dir / "imagenette2-160" / "val"
 
+    vt = val_transform if val_transform is not None else transform
     if train_dir.exists() and val_dir.exists():
         return (
             ImageFolder(str(train_dir), transform=transform),
-            ImageFolder(str(val_dir), transform=transform),
+            ImageFolder(str(val_dir), transform=vt),
         )
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -245,5 +295,5 @@ def download_imagenette(
 
     return (
         ImageFolder(str(train_dir), transform=transform),
-        ImageFolder(str(val_dir), transform=transform),
+        ImageFolder(str(val_dir), transform=vt),
     )

@@ -319,7 +319,12 @@ class JiTModel(nn.Module):
 
         # Conditioning
         self.time_embed = TimestepEmbedder(dim)
-        if conditioning_mode == "label" and num_classes > 0:
+        if conditioning_mode == "label":
+            if num_classes <= 0:
+                raise ValueError(
+                    f"conditioning_mode='label' requires num_classes > 0, got {num_classes}. "
+                    f"Set decoder.num_classes to match your dataset (e.g. decoder.num_classes=10)."
+                )
             self.label_embed = LabelEmbedder(num_classes, dim)
         elif conditioning_mode == "jepa":
             self.jepa_cond = JepaConditioner(jepa_dim, dim)
