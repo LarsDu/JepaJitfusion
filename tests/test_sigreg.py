@@ -58,6 +58,15 @@ def test_sigreg_identical_views_low_invariance():
     assert metrics["invariance_loss"] < 1e-6
 
 
+def test_sigreg_multiview():
+    """SIGReg should accept more than two views (multi-crop)."""
+    sigreg = SIGReg(embed_dim=64, n_slices=16)
+    views = [torch.randn(32, 64) for _ in range(6)]
+    loss, metrics = sigreg(*views)
+    assert loss.shape == ()
+    assert "invariance_loss" in metrics
+
+
 def test_sigreg_gradient_flow():
     sigreg = SIGReg(embed_dim=64, n_slices=16)
     z1 = torch.randn(32, 64, requires_grad=True)

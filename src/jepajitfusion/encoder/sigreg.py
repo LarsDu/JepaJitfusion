@@ -138,23 +138,29 @@ class SIGReg(nn.Module):
         self.slicing_test = SlicingUnivariateTest(embed_dim, n_slices, t_max, n_quad)
 
     def forward(
-        self, z1: torch.Tensor, z2: torch.Tensor
+        self, *views: torch.Tensor
     ) -> tuple[torch.Tensor, dict[str, float]]:
         """
         Args:
-            z1, z2: (B, D) — embeddings from two views of the same images.
+            *views: each (B, D) — embeddings from V augmented views of the same
+                images. At least two views are required.
 
         Returns:
             (total_loss, metrics_dict)
         """
-        # Invariance: MSE between RAW embeddings of the two views.
-        # The reference does NOT L2-normalize: normalizing projects embeddings onto
-        # the unit hypersphere (a SimCLR/cosine geometry) which is inconsistent with
-        # matching an isotropic Gaussian in R^D and biases the model toward collapse.
-        inv_loss = F.mse_loss(z1, z2)
+        assert len(views) >= 2, "SIGReg needs at least two views"
+        # (V, B, D)
+        z = torch.stack(views, dim=0)
 
-        # Regularization: Gaussianity test on each view
-        reg_loss = 0.5 * (self.slicing_test(z1) + self.slicing_test(z2))
+        # Invariance: variance of the views about their per-sample mean, on RAW
+        # embeddings. The reference does NOT L2-normalize: normalizing projects
+        # embeddings onto the unit hypersphere (a SimCLR/cosine geometry), which is
+        # inconsistent with matching an isotropic Gaussian in R^D and biases the
+        # model toward collapse. For two views this equals (1/4)||z1 - z2||^2.
+        inv_loss = (z.mean(dim=0, keepdim=True) - z).square().mean()
+
+        # Regularization: average Gaussianity test over all views.
+        reg_loss = sum(self.slicing_test(v) for v in views) / len(views)
 
         # leJEPA single-hyperparameter convex combination.
         total = self.sigreg_lambda * reg_loss + (1.0 - self.sigreg_lambda) * inv_loss

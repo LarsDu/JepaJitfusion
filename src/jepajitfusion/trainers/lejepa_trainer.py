@@ -149,17 +149,18 @@ class LeJEPATrainer(BaseTrainer):
             epoch_loss = 0.0
 
             for batch_idx, (crops, _labels) in enumerate(train_loader):
-                # crops: list of tensors, first n_global are global crops
-                global_crops = [c.to(self.device) for c in crops[: self.multicrop.n_global]]
+                # crops: list of tensors (n_global global crops + n_local local crops).
+                # All crops are used as views (multi-crop invariance), matching the
+                # configured n_global/n_local rather than discarding the local crops.
+                all_crops = [c.to(self.device) for c in crops]
 
                 with torch.amp.autocast(
                     device_type=self.device.type, dtype=self.amp_dtype
                 ):
-                    # Encode both global crops
-                    z1 = self.projector(self.encoder(global_crops[0]))
-                    z2 = self.projector(self.encoder(global_crops[1]))
+                    # Encode every crop into a projected view embedding.
+                    views = [self.projector(self.encoder(c)) for c in all_crops]
 
-                    loss, metrics = self.sigreg(z1, z2)
+                    loss, metrics = self.sigreg(*views)
 
                 self.optimizer.zero_grad()
                 loss.backward()
