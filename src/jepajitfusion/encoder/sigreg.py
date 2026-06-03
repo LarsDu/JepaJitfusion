@@ -124,10 +124,11 @@ class SIGReg(nn.Module):
         Returns:
             (total_loss, metrics_dict)
         """
-        # Invariance: MSE between L2-normalized embeddings
-        z1_norm = F.normalize(z1, dim=-1)
-        z2_norm = F.normalize(z2, dim=-1)
-        inv_loss = F.mse_loss(z1_norm, z2_norm)
+        # Invariance: MSE between RAW embeddings of the two views.
+        # The reference does NOT L2-normalize: normalizing projects embeddings onto
+        # the unit hypersphere (a SimCLR/cosine geometry) which is inconsistent with
+        # matching an isotropic Gaussian in R^D and biases the model toward collapse.
+        inv_loss = F.mse_loss(z1, z2)
 
         # Regularization: Gaussianity test on each view
         reg_loss = 0.5 * (self.slicing_test(z1) + self.slicing_test(z2))
