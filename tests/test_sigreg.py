@@ -6,12 +6,15 @@ from jepajitfusion.encoder.sigreg import SIGReg, SlicingUnivariateTest, Univaria
 
 
 def test_univariate_test_normal_input():
-    """SIGReg loss should be near zero for standard normal input."""
+    """The Epps-Pulley statistic is O(1) under H0 (sample-size-independent N-scaling)."""
+    torch.manual_seed(0)
     test = UnivariateGaussianityTest(t_max=3.0, n_quad=17)
     # Large batch of standard normal data
     z = torch.randn(10000, 8)  # 8 slices
     loss = test(z)
-    assert loss.item() < 0.05, f"Loss for normal data should be small, got {loss.item()}"
+    # Under the null, N * integral converges to an O(1) statistic (empirically ~1-2),
+    # far below the value for non-normal data (uniform is ~560 at this N).
+    assert loss.item() < 10.0, f"Loss for normal data should be small, got {loss.item()}"
 
 
 def test_univariate_test_nonnormal_input():

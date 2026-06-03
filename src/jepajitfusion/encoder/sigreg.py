@@ -21,12 +21,22 @@ class UnivariateGaussianityTest(nn.Module):
 
     def __init__(self, t_max: float = 3.0, n_quad: int = 17):
         super().__init__()
+        assert n_quad % 2 == 1, "n_quad must be odd"
         t_points = torch.linspace(0, t_max, n_quad)
         self.register_buffer("t_points", t_points)
-        # Gaussian-windowed weights
-        self.register_buffer("weights", torch.exp(-t_points**2 / 2))
-        # Standard normal CF: phi_N(t) = exp(-t^2/2)
-        self.register_buffer("phi_normal", torch.exp(-t_points**2 / 2))
+        # Standard normal CF (real): phi_N(t) = exp(-t^2/2). Also the integration
+        # window w(t) of the Epps-Pulley statistic.
+        window = torch.exp(-t_points**2 / 2)
+        self.register_buffer("phi_normal", window)
+        # Trapezoid quadrature weights over [0, t_max]. Interior nodes get 2*dt
+        # (the factor 2 accounts for the symmetric negative half [-t_max, 0] that we
+        # do not evaluate explicitly); the two endpoints get dt. The window is folded
+        # into the weights so the forward pass is a single weighted sum.
+        dt = t_max / (n_quad - 1)
+        quad = torch.full((n_quad,), 2 * dt)
+        quad[0] = dt
+        quad[-1] = dt
+        self.register_buffer("weights", quad * window)
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
         """
@@ -49,8 +59,12 @@ class UnivariateGaussianityTest(nn.Module):
         # The sin^2 term makes the test sensitive to asymmetry/skew (and non-zero
         # mean); dropping it left the test blind to the odd moments.
         err = (cos_emp - self.phi_normal.unsqueeze(0)) ** 2 + sin_emp**2  # (S, Q)
-        loss = (self.weights.unsqueeze(0) * err).sum(dim=-1).mean()
-        return loss
+        # Epps-Pulley statistic is N * integral; the N factor makes the statistic's
+        # null distribution sample-size-independent (and keeps the gradient scale
+        # consistent across batch sizes). Average over slices.
+        n_samples = z.shape[0]
+        per_slice = (self.weights.unsqueeze(0) * err).sum(dim=-1)  # (S,)
+        return n_samples * per_slice.mean()
 
 
 class SlicingUnivariateTest(nn.Module):
