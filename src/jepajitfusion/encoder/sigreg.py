@@ -83,10 +83,9 @@ class SlicingUnivariateTest(nn.Module):
     ):
         super().__init__()
         self.test = UnivariateGaussianityTest(t_max, n_quad)
-        # Fixed random unit vectors for projection
-        directions = torch.randn(embed_dim, n_slices)
-        directions = F.normalize(directions, dim=0)
-        self.register_buffer("directions", directions)
+        self.n_slices = n_slices
+        # NOTE: embed_dim is retained for API compatibility but no longer used to
+        # pre-allocate directions — slices are drawn dynamically in forward().
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
         """
@@ -100,8 +99,14 @@ class SlicingUnivariateTest(nn.Module):
         # SIGReg's whole purpose is to push the distribution to N(0, I); normalizing
         # mean/variance here would erase exactly the signal the loss must penalize and
         # remove the gradient that prevents representation collapse.
-        # Project to random 1D slices
-        projections = z @ self.directions  # (B, n_slices)
+        #
+        # Draw FRESH random unit projection directions every forward pass. With a
+        # single fixed set of slices the encoder can make exactly those directions
+        # Gaussian while leaving the rest of the sphere non-Gaussian; resampling makes
+        # the sliced test cover the sphere over the course of training.
+        directions = torch.randn(z.shape[-1], self.n_slices, device=z.device, dtype=z.dtype)
+        directions = F.normalize(directions, dim=0)
+        projections = z @ directions  # (B, n_slices)
 
         return self.test(projections)
 
