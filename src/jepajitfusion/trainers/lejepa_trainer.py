@@ -50,14 +50,13 @@ class LeJEPATrainer(BaseTrainer):
             mlp_ratio=enc.mlp_ratio,
         ).to(self.device)
 
-        # Projection head: embed_dim → 2*embed_dim → embed_dim
+        # Projection head: embed_dim → hidden → proj_output_dim (SSL-only)
         self.projector = ProjectionHead(
-            enc.embed_dim, enc.embed_dim * 2, enc.embed_dim
+            enc.embed_dim, config.proj_hidden_dim, config.proj_output_dim
         ).to(self.device)
 
         # SIGReg loss
         self.sigreg = SIGReg(
-            embed_dim=enc.embed_dim,
             n_slices=config.sigreg_n_slices,
             t_max=config.sigreg_t_max,
             n_quad=config.sigreg_n_quad,

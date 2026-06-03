@@ -34,14 +34,14 @@ def test_univariate_test_nonnormal_input():
 
 
 def test_slicing_test_shape():
-    sut = SlicingUnivariateTest(embed_dim=256, n_slices=32)
+    sut = SlicingUnivariateTest(n_slices=32)
     z = torch.randn(64, 256)
     loss = sut(z)
     assert loss.shape == ()  # scalar
 
 
 def test_sigreg_forward():
-    sigreg = SIGReg(embed_dim=256, n_slices=32)
+    sigreg = SIGReg(n_slices=32)
     z1 = torch.randn(64, 256)
     z2 = torch.randn(64, 256)
     total_loss, metrics = sigreg(z1, z2)
@@ -52,7 +52,7 @@ def test_sigreg_forward():
 
 def test_sigreg_identical_views_low_invariance():
     """Invariance loss should be near zero for identical embeddings."""
-    sigreg = SIGReg(embed_dim=256, n_slices=32, sigreg_lambda=0.0)  # invariance-only
+    sigreg = SIGReg(n_slices=32, sigreg_lambda=0.0)  # invariance-only
     z = torch.randn(64, 256)
     loss, metrics = sigreg(z, z)  # identical views
     assert metrics["invariance_loss"] < 1e-6
@@ -60,7 +60,7 @@ def test_sigreg_identical_views_low_invariance():
 
 def test_sigreg_multiview():
     """SIGReg should accept more than two views (multi-crop)."""
-    sigreg = SIGReg(embed_dim=64, n_slices=16)
+    sigreg = SIGReg(n_slices=16)
     views = [torch.randn(32, 64) for _ in range(6)]
     loss, metrics = sigreg(*views)
     assert loss.shape == ()
@@ -68,7 +68,7 @@ def test_sigreg_multiview():
 
 
 def test_sigreg_gradient_flow():
-    sigreg = SIGReg(embed_dim=64, n_slices=16)
+    sigreg = SIGReg(n_slices=16)
     z1 = torch.randn(32, 64, requires_grad=True)
     z2 = torch.randn(32, 64, requires_grad=True)
     loss, _ = sigreg(z1, z2)

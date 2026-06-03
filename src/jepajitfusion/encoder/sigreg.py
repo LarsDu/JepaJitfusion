@@ -76,16 +76,13 @@ class SlicingUnivariateTest(nn.Module):
 
     def __init__(
         self,
-        embed_dim: int,
-        n_slices: int = 64,
+        n_slices: int = 256,
         t_max: float = 3.0,
         n_quad: int = 17,
     ):
         super().__init__()
         self.test = UnivariateGaussianityTest(t_max, n_quad)
         self.n_slices = n_slices
-        # NOTE: embed_dim is retained for API compatibility but no longer used to
-        # pre-allocate directions — slices are drawn dynamically in forward().
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
         """
@@ -115,7 +112,6 @@ class SIGReg(nn.Module):
     """SIGReg loss combining invariance and Gaussianity regularization.
 
     Args:
-        embed_dim: Dimension of the embeddings.
         n_slices: Number of random projection directions.
         t_max: Max quadrature point for CF test.
         n_quad: Number of quadrature points.
@@ -127,15 +123,14 @@ class SIGReg(nn.Module):
 
     def __init__(
         self,
-        embed_dim: int,
-        n_slices: int = 64,
+        n_slices: int = 256,
         t_max: float = 3.0,
         n_quad: int = 17,
         sigreg_lambda: float = 0.02,
     ):
         super().__init__()
         self.sigreg_lambda = sigreg_lambda
-        self.slicing_test = SlicingUnivariateTest(embed_dim, n_slices, t_max, n_quad)
+        self.slicing_test = SlicingUnivariateTest(n_slices, t_max, n_quad)
 
     def forward(
         self, *views: torch.Tensor

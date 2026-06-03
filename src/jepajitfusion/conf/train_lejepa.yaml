@@ -27,8 +27,11 @@ global_crop_scale_max: 1.0
 local_crop_scale_min: 0.05
 local_crop_scale_max: 0.3
 
+# Projection head (SSL-only; discarded for downstream/fusion)
+proj_hidden_dim: 2048
+proj_output_dim: 128
 # SIGReg
-sigreg_n_slices: 64
+sigreg_n_slices: 256
 sigreg_t_max: 3.0
 sigreg_n_quad: 17
 # Single leJEPA hyperparameter: total = lambda*SIGReg + (1-lambda)*invariance
