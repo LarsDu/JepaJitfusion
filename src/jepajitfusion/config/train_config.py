@@ -43,12 +43,15 @@ class LeJEPATrainConfig:
     global_crop_scale_max: float = 1.0
     local_crop_scale_min: float = 0.05
     local_crop_scale_max: float = 0.3
+    # Projection head (SSL-only; discarded for downstream/fusion)
+    proj_hidden_dim: int = 2048
+    proj_output_dim: int = 128
     # SIGReg
-    sigreg_n_slices: int = 64
+    sigreg_n_slices: int = 256
     sigreg_t_max: float = 3.0
     sigreg_n_quad: int = 17
-    invariance_weight: float = 25.0
-    regularization_weight: float = 1.0
+    # Single leJEPA hyperparameter: total = lambda*SIGReg + (1-lambda)*invariance
+    sigreg_lambda: float = 0.02
 
 
 @dataclass

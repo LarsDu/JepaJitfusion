@@ -50,19 +50,17 @@ class LeJEPATrainer(BaseTrainer):
             mlp_ratio=enc.mlp_ratio,
         ).to(self.device)
 
-        # Projection head: embed_dim → 2*embed_dim → embed_dim
+        # Projection head: embed_dim → hidden → proj_output_dim (SSL-only)
         self.projector = ProjectionHead(
-            enc.embed_dim, enc.embed_dim * 2, enc.embed_dim
+            enc.embed_dim, config.proj_hidden_dim, config.proj_output_dim
         ).to(self.device)
 
         # SIGReg loss
         self.sigreg = SIGReg(
-            embed_dim=enc.embed_dim,
             n_slices=config.sigreg_n_slices,
             t_max=config.sigreg_t_max,
             n_quad=config.sigreg_n_quad,
-            invariance_weight=config.invariance_weight,
-            regularization_weight=config.regularization_weight,
+            sigreg_lambda=config.sigreg_lambda,
         ).to(self.device)
 
         # EMA
@@ -160,17 +158,18 @@ class LeJEPATrainer(BaseTrainer):
             epoch_loss = 0.0
 
             for batch_idx, (crops, _labels) in enumerate(train_loader):
-                # crops: list of tensors, first n_global are global crops
-                global_crops = [c.to(self.device) for c in crops[: self.multicrop.n_global]]
+                # crops: list of tensors (n_global global crops + n_local local crops).
+                # All crops are used as views (multi-crop invariance), matching the
+                # configured n_global/n_local rather than discarding the local crops.
+                all_crops = [c.to(self.device) for c in crops]
 
                 with torch.amp.autocast(
                     device_type=self.device.type, dtype=self.amp_dtype
                 ):
-                    # Encode both global crops
-                    z1 = self.projector(self.encoder(global_crops[0]))
-                    z2 = self.projector(self.encoder(global_crops[1]))
+                    # Encode every crop into a projected view embedding.
+                    views = [self.projector(self.encoder(c)) for c in all_crops]
 
-                    loss, metrics = self.sigreg(z1, z2)
+                    loss, metrics = self.sigreg(*views)
 
                 self.optimizer.zero_grad()
                 loss.backward()
