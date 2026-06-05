@@ -3,6 +3,7 @@
 import torch
 from PIL import Image
 
+from jepajitfusion.data.downloader import pokedex_id_from_filename
 from jepajitfusion.data.transforms import forward_transform, reverse_transform
 from jepajitfusion.encoder.multicrop import MultiCropAugmentation
 
@@ -67,3 +68,31 @@ def test_multicrop_normalize_range():
     crops = mc(img)
     assert crops[0].min() >= -1.0
     assert crops[0].max() <= 1.0
+
+
+def test_pokedex_id_from_filename():
+    # Plain Pokedex entries key on the leading digits.
+    assert pokedex_id_from_filename("100_bw_m.png") == "100"
+    assert pokedex_id_from_filename("1_rs_s.png") == "1"
+    # Forme variants share the same Pokedex entry as the base number.
+    assert pokedex_id_from_filename("351-rainy_bw_m_s.png") == "351"
+    assert pokedex_id_from_filename("351-sunny_rs_s.png") == "351"
+    assert pokedex_id_from_filename("386-attack_pt_m_f2.png") == "386"
+
+
+def test_pokemon_split_has_no_pokedex_leakage():
+    """No Pokedex entry may appear in both the train and test splits."""
+    from pathlib import Path
+
+    base = Path("downloads/pokemon_11k")
+    train_dir = base / "train" / "class_0"
+    test_dir = base / "test" / "class_0"
+    if not (train_dir.exists() and test_dir.exists()):
+        import pytest
+
+        pytest.skip("pokemon_11k dataset not downloaded")
+
+    train_ids = {pokedex_id_from_filename(p.name) for p in train_dir.glob("*.png")}
+    test_ids = {pokedex_id_from_filename(p.name) for p in test_dir.glob("*.png")}
+    assert train_ids and test_ids
+    assert train_ids.isdisjoint(test_ids), sorted(train_ids & test_ids)

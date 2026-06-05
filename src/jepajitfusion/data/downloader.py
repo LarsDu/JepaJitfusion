@@ -3,9 +3,11 @@
 import hashlib
 import os
 import random
+import re
 import shutil
 import tarfile
 import zipfile
+from collections import defaultdict
 from pathlib import Path
 from typing import Callable, Sequence
 
@@ -116,6 +118,22 @@ def convert_to_rgb_with_white_bg(
     bg_image.save(output_path, format=output_format)
 
 
+def pokedex_id_from_filename(filename: str) -> str:
+    """Extract the National Pokedex number that identifies a Pokemon.
+
+    Filenames look like ``100_bw_m.png`` or ``351-rainy_bw_m_s.png``; the
+    leading digits are the Pokedex entry. Forme variants such as
+    ``351-rainy`` / ``351-sunny`` share the same entry (``351``) and must
+    not be split across train/test, so we key only on the leading digits.
+    """
+    match = re.match(r"^(\d+)", filename)
+    if match is None:
+        # No numeric prefix: fall back to the stem so the image still groups
+        # deterministically with any siblings sharing that stem.
+        return Path(filename).stem
+    return match.group(1)
+
+
 def download_pokemon_11k(
     transform: Callable | None = None,
     val_transform: Callable | None = None,
@@ -155,17 +173,33 @@ def download_pokemon_11k(
     for img_path in images:
         convert_to_rgb_with_white_bg(img_path, img_path)
 
-    # Split into train/test
+    # Split into train/test BY POKEDEX ENTRY to avoid train/test leakage.
+    # Every sprite (game/form/shiny/gender variant) of a given Pokemon shares
+    # a Pokedex number; splitting on individual images would put the same
+    # Pokemon in both splits. We therefore group by Pokedex id and assign
+    # whole groups to a split.
     (train_dir / "class_0").mkdir(parents=True, exist_ok=True)
     (test_dir / "class_0").mkdir(parents=True, exist_ok=True)
 
-    random.seed(split_seed)
-    random.shuffle(images)
-    split_idx = int(test_size * len(images))
-    test_images = images[:split_idx]
-    train_images = images[split_idx:]
+    groups: dict[str, list[Path]] = defaultdict(list)
+    for img in images:
+        groups[pokedex_id_from_filename(img.name)].append(img)
 
-    print(f"Split: {len(train_images)} train, {len(test_images)} test")
+    pokedex_ids = sorted(groups.keys())
+    random.seed(split_seed)
+    random.shuffle(pokedex_ids)
+    split_idx = int(test_size * len(pokedex_ids))
+    test_ids = set(pokedex_ids[:split_idx])
+    train_ids = set(pokedex_ids[split_idx:])
+
+    train_images = [img for pid in train_ids for img in groups[pid]]
+    test_images = [img for pid in test_ids for img in groups[pid]]
+
+    print(
+        f"Split {len(pokedex_ids)} Pokedex entries into "
+        f"{len(train_ids)} train / {len(test_ids)} test "
+        f"({len(train_images)} / {len(test_images)} images)"
+    )
     for img in train_images:
         if img.is_file():
             shutil.copy(img, train_dir / "class_0" / img.name)
