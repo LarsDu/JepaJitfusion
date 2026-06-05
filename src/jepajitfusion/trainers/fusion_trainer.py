@@ -123,6 +123,8 @@ class FusionTrainer(BaseTrainer):
         val_loader = get_dataloader(
             val_ds, batch_size=self.config.batch_size, shuffle=False
         )
+        # Keep val dataset for conditioned sampling during checkpoints
+        self._ref_dataset = val_ds
         return train_loader, val_loader
 
     def train(self, train_loader=None, val_loader=None) -> TrainingSummary:
@@ -213,25 +215,54 @@ class FusionTrainer(BaseTrainer):
 
     @torch.no_grad()
     def _sample_and_save(self, epoch: int, n_samples: int = 16) -> None:
-        """Generate samples conditioned on encoder embeddings from training data."""
+        """Generate conditioned and unconditioned samples."""
         ema_model = self.ema.get_model(0)
         ema_model.eval()
 
-        # For sampling, we need conditioning from real images
-        # Use a fixed set of noise + conditioning for consistency
         ds = self.config.dataset
         shape = (n_samples, ds.num_channels, ds.img_size, ds.img_size)
-
-        # Unconditional sampling (no JEPA conditioning) as baseline
-        samples = self.sampler.sample(ema_model, shape, self.device)
-
         rev_t = reverse_transform()
+
         sample_dir = os.path.join(self.checkpoint_dir, "samples_fusion")
-        os.makedirs(sample_dir, exist_ok=True)
-        for i, s in enumerate(samples):
+        uncond_dir = os.path.join(sample_dir, "unconditioned")
+        cond_dir = os.path.join(sample_dir, "conditioned")
+        ref_dir = os.path.join(sample_dir, "reference")
+        os.makedirs(uncond_dir, exist_ok=True)
+        os.makedirs(cond_dir, exist_ok=True)
+        os.makedirs(ref_dir, exist_ok=True)
+
+        # Unconditioned samples (baseline)
+        uncond_samples = self.sampler.sample(ema_model, shape, self.device)
+        for i, s in enumerate(uncond_samples):
             img = rev_t(s)
-            img.save(os.path.join(sample_dir, f"epoch{epoch + 1}_sample{i}.png"))
-        print(f"  Saved {n_samples} fusion samples to {sample_dir}")
+            img.save(os.path.join(uncond_dir, f"epoch{epoch + 1}_sample{i}.png"))
+
+        # Conditioned samples using fixed reference images from val set
+        if hasattr(self, "_ref_dataset") and self._ref_dataset is not None:
+            n_ref = min(n_samples, len(self._ref_dataset))
+            ref_images = []
+            for idx in range(n_ref):
+                img_tensor, _ = self._ref_dataset[idx]
+                ref_images.append(img_tensor)
+            ref_batch = torch.stack(ref_images).to(self.device)
+
+            jepa_emb = self.encoder(ref_batch)
+            cond_shape = (n_ref, ds.num_channels, ds.img_size, ds.img_size)
+            cond_samples = self.sampler.sample(
+                ema_model, cond_shape, self.device, conditioning=jepa_emb
+            )
+            for i, s in enumerate(cond_samples):
+                img = rev_t(s)
+                img.save(os.path.join(cond_dir, f"epoch{epoch + 1}_sample{i}.png"))
+
+            # Symlink reference images (once — they don't change across epochs)
+            for i in range(n_ref):
+                link_path = os.path.join(ref_dir, f"ref{i}.png")
+                if not os.path.exists(link_path):
+                    src_path = os.path.abspath(self._ref_dataset.samples[i][0])
+                    os.symlink(src_path, link_path)
+
+        print(f"  Saved fusion samples to {sample_dir}")
 
     def _save_checkpoint(self, epoch: int, suffix: str | None = None) -> None:
         name = f"fusion_{suffix}.pth" if suffix else f"fusion_epoch_{epoch + 1}.pth"
