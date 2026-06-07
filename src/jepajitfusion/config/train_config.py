@@ -43,6 +43,18 @@ class LeJEPATrainConfig:
     global_crop_scale_max: float = 1.0
     local_crop_scale_min: float = 0.05
     local_crop_scale_max: float = 0.3
+    # Color augmentation (morphology experiments). "default" reproduces the
+    # original ColorJitter(0.4,0.4,0.2,0.1). "colorjitter"/"lab" randomize the
+    # absolute palette while preserving relative color geometry (see
+    # encoder.color_transforms).
+    color_aug: str = "default"  # default | colorjitter | lab
+    cj_brightness: float = 0.4
+    cj_contrast: float = 0.4
+    cj_saturation: float = 0.4
+    cj_hue: float = 0.125  # ColorJitter hue range; 0.5 == 180deg. 0.125 ~= +/-45deg
+    lab_hue_deg: float = 45.0  # Lab chroma-plane rotation range (degrees)
+    lab_lightness: float = 0.1  # Lab L shift fraction
+    lab_chroma: float = 0.3  # Lab chroma scale jitter
     # Projection head (SSL-only; discarded for downstream/fusion)
     proj_hidden_dim: int = 2048
     proj_output_dim: int = 128

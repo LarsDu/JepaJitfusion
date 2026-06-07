@@ -1,0 +1,58 @@
+# Morphology experiment A — relational-preserving ColorJitter.
+#
+# Randomizes absolute palette (wide hue, no grayscale/solarize) while keeping
+# relative color geometry, and raises the global crop scale floor so a stable
+# whole-creature silhouette is a learnable invariant. Goal: embeddings that group
+# the *same* Pokemon across color variants (incl. shiny) rather than *different*
+# Pokemon that share a palette.
+#
+# Run:
+#   python -m jepajitfusion.train_lejepa_app \
+#       --config-name train_lejepa_morph_colorjitter
+defaults:
+  - dataset: pokemon_11k
+  - encoder: vit_tiny
+  - _self_
+
+run_id: lejepa_morph_colorjitter
+
+num_epochs: 200
+batch_size: 128
+learning_rate: 3e-4
+weight_decay: 0.05
+warmup_epochs: 10
+beta1: 0.9
+beta2: 0.95
+ema_decays: [0.9999]
+amp_dtype: bfloat16
+seed: 1999
+checkpoint_dir: checkpoints
+log_every: 10
+sample_every: 50
+validate_every: 10
+
+# Multi-crop — raise global crop floor (0.3 -> 0.5) to preserve silhouette.
+n_global_crops: 2
+n_local_crops: 4
+global_crop_size: 96
+local_crop_size: 32
+global_crop_scale_min: 0.5
+global_crop_scale_max: 1.0
+local_crop_scale_min: 0.05
+local_crop_scale_max: 0.3
+
+# Relational-preserving color jitter: wide hue (~+/-45deg), no grayscale.
+color_aug: colorjitter
+cj_brightness: 0.4
+cj_contrast: 0.4
+cj_saturation: 0.4
+cj_hue: 0.125
+
+# Projection head (SSL-only; discarded for downstream/fusion)
+proj_hidden_dim: 2048
+proj_output_dim: 128
+# SIGReg
+sigreg_n_slices: 256
+sigreg_t_max: 3.0
+sigreg_n_quad: 17
+sigreg_lambda: 0.02

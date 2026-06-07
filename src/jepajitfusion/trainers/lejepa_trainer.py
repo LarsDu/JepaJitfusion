@@ -83,6 +83,14 @@ class LeJEPATrainer(BaseTrainer):
             local_size=config.local_crop_size,
             global_scale=(config.global_crop_scale_min, config.global_crop_scale_max),
             local_scale=(config.local_crop_scale_min, config.local_crop_scale_max),
+            color_aug=config.color_aug,
+            cj_brightness=config.cj_brightness,
+            cj_contrast=config.cj_contrast,
+            cj_saturation=config.cj_saturation,
+            cj_hue=config.cj_hue,
+            lab_hue_deg=config.lab_hue_deg,
+            lab_lightness=config.lab_lightness,
+            lab_chroma=config.lab_chroma,
         )
 
         n_params = sum(p.numel() for p in self.encoder.parameters()) / 1e6

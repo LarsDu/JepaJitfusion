@@ -28,6 +28,19 @@ global_crop_scale_max: 1.0
 local_crop_scale_min: 0.05
 local_crop_scale_max: 0.3
 
+# Color augmentation: default | colorjitter | lab
+# "default" = original ColorJitter(0.4,0.4,0.2,0.1). The morphology experiments
+# use "colorjitter"/"lab" to randomize absolute palette while preserving relative
+# color geometry. See conf/train_lejepa_morph_*.yaml.
+color_aug: default
+cj_brightness: 0.4
+cj_contrast: 0.4
+cj_saturation: 0.4
+cj_hue: 0.125          # 0.5 == 180deg; 0.125 ~= +/-45deg
+lab_hue_deg: 45.0      # Lab chroma-plane rotation range (degrees)
+lab_lightness: 0.1     # Lab L shift fraction
+lab_chroma: 0.3        # Lab chroma scale jitter
+
 # Projection head (SSL-only; discarded for downstream/fusion)
 proj_hidden_dim: 2048
 proj_output_dim: 128
